@@ -1,0 +1,21 @@
+{
+    "name": "my-api",
+    "version": "1.0.0",
+    "description": "API for managing users and contacts",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "mongoose": "^6.10.0",
+        "swagger-ui-express": "^4.5.0",
+        "swagger-jsdoc": "^6.2.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.0"
+    },
+    "author": "Smith",
+    "license": "MIT"
+}
