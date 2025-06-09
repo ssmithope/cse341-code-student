@@ -12,7 +12,7 @@ const contactsRoutes = require("./routes/contacts");
 const usersRoutes = require("./routes/users");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 // Suppress Mongoose strictQuery warning
 mongoose.set("strictQuery", false);

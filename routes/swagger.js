@@ -11,7 +11,7 @@ const swaggerOptions = {
             version: "1.0.0",
             description: "API documentation",
         },
-        servers: [{ url: "http://localhost:3000" }],
+        servers: [{ url: "http://localhost:10000" }],
     },
     apis: ["./routes/users.js", "./routes/contacts.js"], 
 };
