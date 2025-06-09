@@ -49,6 +49,49 @@
         "parameters": [{ "name": "id", "in": "path", "required": true, "type": "string" }],
         "responses": { "200": { "description": "User deleted successfully" } }
       }
+    },
+    "/contacts": {
+      "get": {
+        "summary": "Get all contacts",
+        "responses": {
+          "200": { "description": "Success" }
+        }
+      },
+      "post": {
+        "summary": "Create a new contact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Contact"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Contact created successfully" }
+        }
+      }
+    },
+    "/contacts/{id}": {
+      "get": {
+        "summary": "Get a contact by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "type": "string" }],
+        "responses": { "200": { "description": "Success" } }
+      },
+      "put": {
+        "summary": "Update contact by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "type": "string" }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Contact" } } }
+        },
+        "responses": { "200": { "description": "Contact updated successfully" } }
+      },
+      "delete": {
+        "summary": "Delete a contact",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "type": "string" }],
+        "responses": { "200": { "description": "Contact deleted successfully" } }
+      }
     }
   },
   "components": {
@@ -62,6 +105,15 @@
           "password": { "type": "string" }
         },
         "required": ["name", "email", "password"]
+      },
+      "Contact": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "phone": { "type": "string" },
+          "email": { "type": "string" }
+        },
+        "required": ["name", "email"]
       }
     }
   }
