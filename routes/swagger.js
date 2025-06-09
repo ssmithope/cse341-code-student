@@ -13,7 +13,7 @@ const swaggerOptions = {
         },
         servers: [{ url: "http://localhost:3000" }],
     },
-    apis: ["./routes/contacts.js"], // Ensure it points to the correct route file
+    apis: ["./routes/users.js", "./routes/contacts.js"], 
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
