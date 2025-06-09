@@ -1,10 +1,10 @@
 How will you divide up work in your team to ensure the following tasks all get completed?
-●	HTTP GET, GET (all, single) Smith
-●	HTTP POST Smith
-●	HTTP PUT Smith
-●	HTTP DELETE Smith
-●	Node.js project creation Smith
-●	Create git repo and share with group Jacob
-●	MongoDB setup Jacob 
-●	API Swagger documentation for all API routes Jacob
-●	Video presentation of node project, all routes functioning, mongoDB data being modified, and API documentation. Jacob
+●	HTTP GET, GET (all, single) Smith Eutrope Zephirin
+●	HTTP POST Smith Eutrope Zephirin
+●	HTTP PUT Smith Eutrope Zephirin
+●	HTTP DELETE Smith Eutrope Zephirin
+●	Node.js project creation Smith Eutrope Zephirin
+●	Create git repo and share with group Smith Eutrope Zephirin
+●	MongoDB setup Smith Eutrope Zephirin 
+●	API Swagger documentation for all API routes Jacob Michael Humphreys
+●	Video presentation of node project, all routes functioning, mongoDB data being modified, and API documentation.Jacob Michael Humphreys
