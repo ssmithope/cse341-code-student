@@ -4,8 +4,13 @@
     "title": "Project API",
     "version": "1.0.0"
   },
-  "host": "your-heroku-url.com",
+  "host": "cse341-code-student-88ay.onrender.com",
   "schemes": ["https"],
+  "servers": [
+    {
+      "url": "https://cse341-code-student-88ay.onrender.com"
+    }
+  ],
   "paths": {
     "/users": {
       "get": {

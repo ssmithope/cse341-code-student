@@ -14,6 +14,10 @@ const usersRoutes = require("./routes/users");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+const cors = require("cors");
+app.use(cors());
+
+
 // Suppress Mongoose strictQuery warning
 mongoose.set("strictQuery", false);
 
