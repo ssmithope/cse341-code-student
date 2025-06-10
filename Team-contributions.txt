@@ -7,4 +7,4 @@ How will you divide up work in your team to ensure the following tasks all get c
 ●	Create git repo and share with group Smith Eutrope Zephirin
 ●	MongoDB setup Smith Eutrope Zephirin 
 ●	API Swagger documentation for all API routes Jacob Michael Humphreys
-●	Video presentation of node project, all routes functioning, mongoDB data being modified, and API documentation.Jacob Michael Humphreys
+●	Video presentation of node project, all routes functioning, mongoDB data being modified, and API documentation.Smith Eutrope Zephirin
