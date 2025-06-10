@@ -1,12 +1,9 @@
-require("dotenv").config();
-const dotenv = require("dotenv");
-dotenv.config({ path: "./.env" });
-console.log("MongoDB URI:", process.env.MONGODB_URI);
-console.log("JWT Secret:", process.env.JWT_SECRET);
- // Debugging check
+require("dotenv").config(); // Load environment variables
 
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require("cors");
+
 const swaggerRoutes = require("./routes/swagger");
 const contactsRoutes = require("./routes/contacts");
 const usersRoutes = require("./routes/users");
@@ -14,34 +11,42 @@ const usersRoutes = require("./routes/users");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-const cors = require("cors");
-app.use(cors());
+//Enable CORS with secure settings
+app.use(cors({
+    origin: "*", 
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
-
-// Suppress Mongoose strictQuery warning
+//Suppress Mongoose strictQuery warning
 mongoose.set("strictQuery", false);
 
-// Middleware
+//Middleware
 app.use(express.json());
 
-// Routes
+//Routes
 app.use("/contacts", contactsRoutes);
 app.use("/users", usersRoutes);
 app.use("/", swaggerRoutes);
 
+//Default Route
 app.get("/", (req, res) => {
     res.send("Welcome to my API!");
 });
 
-// Connect to MongoDB
+//Improved MongoDB Connection Handling
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     serverSelectionTimeoutMS: 5000,
-}).then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.error("MongoDB connection error:", err));
+}).then(() => {
+    console.log("Connected to MongoDB");
+}).catch(err => {
+    console.error("MongoDB connection error:", err.message);
+    process.exit(1);
+});
 
-// Start server
+//Start Server
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
