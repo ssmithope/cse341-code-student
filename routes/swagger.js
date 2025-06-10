@@ -11,7 +11,7 @@ const swaggerOptions = {
             version: "1.0.0",
             description: "API documentation",
         },
-        servers: [{ url: "http://localhost:10000" }],
+        servers: [{ url: "https://cse341-code-student-88ay.onrender.com" }],
     },
     apis: ["./routes/users.js", "./routes/contacts.js"], 
 };
