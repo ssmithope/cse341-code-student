@@ -14,14 +14,14 @@ Content-Type: application/json
 
 {
    "name": "Johnny Paul",
-   "phone": "636-5652",
-   "email": "johny@example.com",
+   "phone": "542-3142",
+   "email": "johnypa@example.com",
    "password": "securepass"
 }
 
 
 ### Update User by ID 
-PUT http://localhost:10000/users/684713b4f9e3d90475fb9684
+PUT http://localhost:10000/users/68478e5e7154fb88d2ddea54
 Content-Type: application/json
 
 {
