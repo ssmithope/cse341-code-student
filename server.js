@@ -1,58 +1,62 @@
 require("dotenv").config();
 
 const express = require("express");
+const app = express(); 
+
+// Swagger setup (before routes)
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./swagger.json");
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// Middleware
 const mongoose = require("mongoose");
 const cors = require("cors");
+const authenticateToken = require("./middleware/auth");
 
+// Routes (Ensuring Products Are Registered)
 const swaggerRoutes = require("./routes/swagger");
 const contactsRoutes = require("./routes/contacts");
 const usersRoutes = require("./routes/users");
+const productsRoutes = require("./routes/products");
 
-const app = express();
-const PORT = process.env.PORT || 10000;
-
-// Middleware (Ensure correct execution order)
-app.use(express.json());  
-
+// Middleware setup
 app.use(cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
+app.use(express.json());
 
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    next();
-});
-
-// Suppress Mongoose strictQuery warning
-mongoose.set("strictQuery", false);
-
-// Routes
+// API Routes (Ensuring `/products` appears correctly)
 app.use("/contacts", contactsRoutes);
 app.use("/users", usersRoutes);
+app.use("/products", productsRoutes); 
 app.use("/", swaggerRoutes);
 
-// Default Route
+// Default route
 app.get("/", (req, res) => {
     res.send("Welcome to my API!");
 });
 
-// MongoDB Connection Handling
+// MongoDB Setup
+mongoose.set("strictQuery", false);
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 10000,
 }).then(() => {
-    console.log("Connected to MongoDB"); 
+    console.log("Connected to MongoDB");
 }).catch(err => {
     console.error("MongoDB connection error:", err.message);
     process.exit(1);
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Handle Graceful Shutdown
+process.on("SIGINT", async () => {
+    await mongoose.disconnect();
+    console.log("MongoDB disconnected");
+    process.exit(0);
 });
+
+// Export app for external use
+module.exports = app;
