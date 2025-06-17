@@ -13,7 +13,7 @@ const swaggerOptions = {
         },
         servers: [{ url: "https://cse341-code-student-88ay.onrender.com" }],
     },
-    apis: ["./routes/users.js", "./routes/contacts.js"], 
+    apis: ["./routes/users.js", "./routes/contacts.js", "./routes/orders.js", "./routes/products.js"], 
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);

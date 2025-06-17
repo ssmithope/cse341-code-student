@@ -2,7 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Project API",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "description": "API documentation for managing users, contacts, products, and orders."
   },
   "servers": [
     {
@@ -11,8 +12,9 @@
   ],
   "tags": [
     { "name": "Users", "description": "User management operations" },
+    { "name": "Contacts", "description": "Contact information management" },
     { "name": "Products", "description": "Product catalog operations" },
-    { "name": "Contacts", "description": "Contact information management" }
+    { "name": "Orders", "description": "Order management operations" }
   ],
   "components": {
     "securitySchemes": {
@@ -51,114 +53,26 @@
           "price": { "type": "number" },
           "category": { "type": "string" }
         }
+      },
+      "Order": {
+        "type": "object",
+        "required": ["products", "user", "quantity", "totalPrice"],
+        "properties": {
+          "products": { "type": "array", "items": { "type": "string" }, "description": "Product IDs" },
+          "user": { "type": "string", "description": "User ID" },
+          "quantity": { "type": "number", "description": "Total quantity ordered" },
+          "totalPrice": { "type": "number", "description": "Total price of the order" },
+          "status": { "type": "string", "enum": ["Pending", "Shipped", "Delivered", "Cancelled"], "default": "Pending" }
+        }
       }
     }
   },
   "paths": {
     "/users": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "Get all users",
-        "responses": {
-          "200": { "description": "Success" }
-        }
-      },
-      "post": {
-        "tags": ["Users"],
-        "summary": "Create a new user",
-        "security": [{ "BearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/User" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "User created successfully" },
-          "400": { "description": "Validation error" }
-        }
-      }
-    },
-    "/users/{id}": {
-      "get": {
-        "tags": ["Users"],
-        "summary": "Get a user by ID",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Success" } }
-      },
-      "put": {
-        "tags": ["Users"],
-        "summary": "Update user by ID",
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } }
-        },
-        "responses": {
-          "200": { "description": "User updated successfully" },
-          "400": { "description": "Validation error" }
-        }
-      },
-      "delete": {
-        "tags": ["Users"],
-        "summary": "Delete a user",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "User deleted successfully" } }
-      }
-    },
-    "/contacts": {
-      "get": {
-        "tags": ["Contacts"],
-        "summary": "Get all contacts",
-        "responses": { "200": { "description": "Success" } }
-      },
-      "post": {
-        "tags": ["Contacts"],
-        "summary": "Create a new contact",
-        "security": [{ "BearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/Contact" }
-            }
-          }
-        },
-        "responses": {
-          "201": { "description": "Contact created successfully" },
-          "400": { "description": "Validation error" }
-        }
-      }
-    },
-    "/contacts/{id}": {
-      "get": {
-        "tags": ["Contacts"],
-        "summary": "Get a contact by ID",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Success" } }
-      },
-      "put": {
-        "tags": ["Contacts"],
-        "summary": "Update contact by ID",
-        "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Contact" } } }
-        },
-        "responses": {
-          "200": { "description": "Contact updated successfully" },
-          "400": { "description": "Validation error" }
-        }
-      },
-      "delete": {
-        "tags": ["Contacts"],
-        "summary": "Delete a contact",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Contact deleted successfully" } }
+      "get": { "tags": ["Users"], "summary": "Get all users", "responses": { "200": { "description": "Success" }, "500": { "description": "Internal server error" } } },
+      "post": { "tags": ["Users"], "summary": "Create a new user", "security": [{ "BearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } },
+        "responses": { "201": { "description": "User created successfully" }, "400": { "description": "Missing required fields" }, "500": { "description": "Internal server error" } }
       }
     },
     "/products": {
@@ -166,7 +80,9 @@
         "tags": ["Products"],
         "summary": "Get all products",
         "responses": {
-          "200": { "description": "Success" }
+          "200": { "description": "Success - Returns a list of products" },
+          "404": { "description": "No products found" },
+          "500": { "description": "Internal server error" }
         }
       },
       "post": {
@@ -183,7 +99,8 @@
         },
         "responses": {
           "201": { "description": "Product created successfully" },
-          "400": { "description": "Validation error" }
+          "400": { "description": "Missing required fields" },
+          "500": { "description": "Internal server error" }
         }
       }
     },
@@ -191,28 +108,60 @@
       "get": {
         "tags": ["Products"],
         "summary": "Get a product by ID",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Success" } }
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }],
+        "responses": {
+          "200": { "description": "Product retrieved successfully" },
+          "400": { "description": "Invalid product ID format" },
+          "404": { "description": "Product not found" },
+          "500": { "description": "Internal server error" }
+        }
       },
       "put": {
         "tags": ["Products"],
-        "summary": "Update product by ID",
+        "summary": "Update a product",
         "security": [{ "BearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }],
         "requestBody": {
           "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Product" } } }
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Product" }
+            }
+          }
         },
         "responses": {
           "200": { "description": "Product updated successfully" },
-          "400": { "description": "Validation error" }
+          "400": { "description": "Invalid request" },
+          "404": { "description": "Product not found" },
+          "500": { "description": "Internal server error" }
         }
       },
       "delete": {
         "tags": ["Products"],
         "summary": "Delete a product",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Product deleted successfully" } }
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }],
+        "responses": {
+          "200": { "description": "Product deleted successfully" },
+          "400": { "description": "Invalid product ID format" },
+          "404": { "description": "Product not found" },
+          "500": { "description": "Internal server error" }
+        }
       }
     }
   }
