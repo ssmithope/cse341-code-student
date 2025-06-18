@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const passport = require("passport");
 const session = require("express-session");
+const MongoStore = require("connect-mongo");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./swagger.json");
 
@@ -15,12 +16,16 @@ const PORT = process.env.NODE_ENV === "test" ? 0 : process.env.PORT || 10000;
 app.use(cors());
 app.use(express.json());
 
-// Session management for OAuth authentication
+// Session management for OAuth authentication with MongoDB storage
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI,
+      collectionName: "sessions",
+    }),
   })
 );
 app.use(passport.initialize());
