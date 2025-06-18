@@ -2,80 +2,79 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const authenticateToken = require("./middleware/auth");
-const app = express();
-
-// Define the port for Render
-const PORT = process.env.PORT || 10000;
-
-// Swagger setup
+const passport = require("passport");
+require("./config/passport");
+const session = require("express-session");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./swagger.json");
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+const app = express();
+const PORT = process.env.NODE_ENV === "test" ? 0 : process.env.PORT || 10000; // Fix: Dynamic port for testing
 
 // Middleware setup
-app.use(cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
+app.use(cors());
 app.use(express.json());
 
-// Routes
-const swaggerRoutes = require("./routes/swagger");
-const contactsRoutes = require("./routes/contacts");
-const usersRoutes = require("./routes/users");
-const productsRoutes = require("./routes/products");
-const ordersRoutes = require("./routes/orders");
+// Session management for OAuth
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 
-// API Routes
-app.use("/contacts", contactsRoutes);
-app.use("/users", usersRoutes);
+// Swagger setup
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// Routes
+const authRoutes = require("./routes/auth");
+const productsRoutes = require("./routes/products");
+const usersRoutes = require("./routes/users");
+const ordersRoutes = require("./routes/orders");
+const contactsRoutes = require("./routes/contacts");
+const swaggerRoutes = require("./routes/swagger");
+
+app.use("/auth", authRoutes);
 app.use("/products", productsRoutes);
+app.use("/users", usersRoutes);
 app.use("/orders", ordersRoutes);
+app.use("/contacts", contactsRoutes);
 app.use("/", swaggerRoutes);
 
-// Default route
-app.get("/", (req, res) => {
-    res.send("Welcome to my API!");
-});
+// Default Route
+app.get("/", (req, res) => res.send("Welcome to my API!"));
 
-// MongoDB Setup
+// MongoDB Connection
 mongoose.set("strictQuery", false);
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 10000,
-}).then(() => {
-    console.log("Connected to MongoDB");
-}).catch(err => {
+}).then(() => console.log("Connected to MongoDB"))
+.catch(err => {
     console.error("MongoDB connection error:", err.message);
     process.exit(1);
 });
 
-// Graceful shutdown
+// Graceful shutdown handling
 process.on("SIGINT", async () => {
     await mongoose.disconnect();
     console.log("MongoDB disconnected");
     process.exit(0);
 });
 
-// Prevent multiple instances during testing
-if (!module.parent) {
-    const server = app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
-    });
+// Start the server
+const server = app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
-    // Handle server shutdown properly
-    process.on("SIGTERM", async () => {
-        console.log("Shutting down server...");
-        await mongoose.disconnect();
-        server.close(() => {
-            console.log("Server closed.");
-            process.exit(0);
-        });
+// Handle server shutdown properly
+process.on("SIGTERM", async () => {
+    console.log("Shutting down server...");
+    await mongoose.disconnect();
+    server.close(() => {
+        console.log("Server closed.");
+        process.exit(0);
     });
-}
+});
 
-// Export app for external use (important for testing)
+// Export app for testing
 module.exports = app;

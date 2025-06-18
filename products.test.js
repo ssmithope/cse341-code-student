@@ -1,119 +1,90 @@
 const jwt = require("jsonwebtoken");
 const request = require("supertest");
-const app = require("./server");
 const mongoose = require("mongoose");
+const app = require("./server"); // Adjust path if needed
 
 let server;
+let productId;
 
 beforeAll(async () => {
-  process.env.TEST_JWT = jwt.sign(
-    { userId: "testUserId" },
-    process.env.JWT_SECRET,
-    { expiresIn: "2h" }
-  );
+    process.env.TEST_JWT = jwt.sign(
+        { userId: "testUserId" },
+        process.env.JWT_SECRET,
+        { expiresIn: "2h" }
+    );
 
-  server = app.listen(0); 
+    server = app.listen(process.env.NODE_ENV === "test" ? 0 : 10000); // Fix: Use dynamic port for tests
 });
 
 describe("Product Routes", () => {
-  // GET all products
-  test("GET /products should return all products", async () => {
-    const response = await request(app)
-      .get("/products")
-      .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
+    it("should create a product", async () => {
+        const newProduct = {
+            name: "Test Product",
+            price: 29.99,
+            category: "Electronics",
+            stock: 10
+        };
 
-    expect(response.status).toBe(200);
-    expect(Array.isArray(response.body)).toBe(true);
-  });
+        const createResponse = await request(app)
+            .post("/products")
+            .send(newProduct)
+            .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-  // Create a product
-  test("POST /products should create a new product", async () => {
-    const newProduct = {
-      name: "Test Product",
-      price: 29.99,
-      category: "Electronics"
-    };
+        expect(createResponse.status).toBe(201);
+        expect(createResponse.body).toHaveProperty("_id"); // Fix: Ensure _id is returned
 
-    const response = await request(app)
-      .post("/products")
-      .send(newProduct)
-      .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
+        productId = createResponse.body._id;
+        if (!productId) throw new Error("Product ID is undefined.");
+    });
 
-    expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty("_id");
-    expect(response.body.name).toBe(newProduct.name);
-  });
+    it("should update a product", async () => {
+        if (!productId) throw new Error("Product ID is undefined.");
 
-  // Fail to create product with missing fields
-  test("POST /products should fail with missing required fields", async () => {
-    const response = await request(app)
-      .post("/products")
-      .send({ category: "Missing name and price" }) 
-      .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
+        const updatedData = { name: "Updated Product", price: 39.99, category: "Electronics", stock: 20 };
 
-    expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty("message");
-  });
+        const updateResponse = await request(app)
+            .put(`/products/${productId}`)
+            .send(updatedData)
+            .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-  // Update a product
-  test("PUT /products/:id should update a product", async () => {
-    const newProductResponse = await request(app)
-      .post("/products")
-      .send({
-        name: "Temp Product",
-        price: 19.99,
-        category: "Gadgets"
-      })
-      .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
+        expect(updateResponse.status).toBe(200);
+        expect(updateResponse.body).toHaveProperty("_id");
+        expect(updateResponse.body.name).toBe(updatedData.name);
+    });
 
-    const productId = newProductResponse.body?._id;
-    if (!productId) {
-      throw new Error("Product ID is undefined.");
-    }
+    it("should fail to create a product with missing required fields", async () => {
+        const response = await request(app)
+            .post("/products")
+            .send({ category: "Missing name and price" }) 
+            .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-    const updatedData = {
-      name: "Updated Product",
-      price: 39.99,
-      category: "Electronics"
-    };
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty("message");
+    });
 
-    const response = await request(app)
-      .put(`/products/${productId}`)
-      .send(updatedData)
-      .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
+    it("should delete a product", async () => {
+        if (!productId) throw new Error("Product ID is undefined. Cannot delete.");
 
-    expect(response.status).toBe(200);
-    expect(response.body.name).toBe(updatedData.name);
-  });
+        const deleteResponse = await request(app)
+            .delete(`/products/${productId}`)
+            .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-  // Delete a product
-  test("DELETE /products/:id should delete a product", async () => {
-    const createResponse = await request(app)
-      .post("/products")
-      .send({
-        name: "Temp Product",
-        price: 19.99,
-        category: "Gadgets"
-      })
-      .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
+        expect(deleteResponse.status).toBe(200);
+        expect(deleteResponse.body.message).toBe("Product deleted successfully");
+    });
 
-    const productId = createResponse.body?._id;
-    if (!productId) {
-      throw new Error("Product ID is undefined. Cannot delete.");
-    }
+    it("should fetch all products", async () => {
+        const response = await request(app)
+            .get("/products")
+            .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-    const deleteResponse = await request(app)
-      .delete(`/products/${productId}`)
-      .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
-
-    expect(deleteResponse.status).toBe(200);
-    expect(deleteResponse.body.message).toBe("Product deleted successfully");
-  });
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+    });
 });
 
-// Cleanup
 afterAll(async () => {
-  await server.close();
-  await mongoose.connection.close();
-  await new Promise(resolve => setTimeout(resolve, 0));
+    await server.close();
+    await mongoose.connection.close();
+    await new Promise(resolve => setTimeout(resolve, 0)); // Ensures async cleanup
 });

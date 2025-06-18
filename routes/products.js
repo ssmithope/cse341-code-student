@@ -26,15 +26,21 @@ const mongoose = require("mongoose");
  *         description: Internal server error
  */
 router.get("/", async (req, res) => {
-  try {
-    const products = await Product.find();
-    if (!products.length) {
-      return res.status(404).json({ message: "No products found" });
+    try {
+        console.log("Fetching products...");
+        const products = await Product.find();
+        console.log("Products found:", products);
+
+        if (!products.length) {
+            console.log("No products found in DB.");
+            return res.status(404).json({ message: "No products found" });
+        }
+
+        res.status(200).json(products);
+    } catch (error) {
+        console.error("Error fetching products:", error.message);
+        res.status(500).json({ message: "Error fetching products", error: error.message });
     }
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching products", error: error.message });
-  }
 });
 
 /**
@@ -107,21 +113,22 @@ router.get("/:id", async (req, res) => {
  *       500:
  *         description: Internal server error
  */
-router.post("/", async (req, res) => {
-  const { name, price, category } = req.body;
+router.post("/", authenticateToken, async (req, res) => {
+    const { name, price, category, stock } = req.body;
 
-  if (!name || !price || !category) {
-    return res.status(400).json({ message: "All fields required" });
-  }
+    if (!name || !price || !category || stock === undefined) {
+        return res.status(400).json({ message: "All fields (name, price, category, stock) are required" });
+    }
 
-  try {
-    const product = new Product({ name, price, category });
-    await product.save();
-    res.status(201).json(product);
-  } catch (error) {
-    res.status(500).json({ message: "Error creating product", error: error.message });
-  }
+    try {
+        const product = new Product({ name, price, category, stock });
+        await product.save();
+        res.status(201).json(product);
+    } catch (error) {
+        res.status(500).json({ message: "Error creating product", error: error.message });
+    }
 });
+
 
 /**
  * @swagger
