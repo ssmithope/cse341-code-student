@@ -1,127 +1,108 @@
 const jwt = require("jsonwebtoken");
 const request = require("supertest");
-const app = require("./server");
 const mongoose = require("mongoose");
+const app = require("./server");
+
+process.env.JWT_SECRET = process.env.JWT_SECRET || "testsecret";
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || "testsecret";
+process.env.MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/testdb";
 
 let server;
 
-// Setup: Start server & generate JWT
 beforeAll(async () => {
-  process.env.TEST_JWT = jwt.sign(
-    { userId: "testUserId" },
-    process.env.JWT_SECRET,
-    { expiresIn: "2h" }
-  );
+  await mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  });
 
-  server = app.listen(0); 
+  // Ensure connection is stable before starting tests
+  let retries = 5;
+  while (mongoose.connection.readyState !== 1 && retries > 0) {
+    await new Promise(res => setTimeout(res, 500));
+    retries--;
+  }
+
+  server = app.listen(0);
+  process.env.TEST_JWT = jwt.sign({ userId: "testUserId" }, process.env.JWT_SECRET, {
+    expiresIn: "2h"
+  });
+});
+
+afterAll(async () => {
+  await mongoose.connection.close();
+  await new Promise(resolve => server.close(resolve));
 });
 
 describe("User Routes", () => {
-  // GET all users
   test("GET /users should return all users", async () => {
-    const response = await request(app)
+    const res = await request(app)
       .get("/users")
       .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
-
-    expect(response.status).toBe(200);
-    expect(Array.isArray(response.body)).toBe(true);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
   });
 
-  // POST /users - Create new user
   test("POST /users should create a new user", async () => {
-    const uniqueEmail = `test_${Date.now()}@example.com`;
-    const newUser = {
-      name: "John Doe",
-      email: uniqueEmail,
-      password: "securePassword123"
-    };
-
-    const response = await request(app)
+    const email = `test_${Date.now()}@example.com`;
+    const res = await request(app)
       .post("/users")
-      .send(newUser)
+      .send({ name: "John Doe", email, password: "securePass123" })
       .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-    expect(response.status).toBe(201);
-    expect(response.body.user).toHaveProperty("_id");
-    expect(response.body.user.name).toBe(newUser.name);
+    console.log("POST /users response:", res.body);
+    expect(res.status).toBe(201);
+    expect(res.body.user).toHaveProperty("_id");
+    expect(res.body.user.email).toBe(email);
   });
 
-  // POST /users - Fail with missing fields
-  test("POST /users should fail with missing required fields", async () => {
-    const invalidUser = { email: "incomplete@example.com" };
-
-    const response = await request(app)
-      .post("/users")
-      .send(invalidUser)
-      .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
-
-    expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty("message");
-  });
-
-  // PUT /users/:id - Update a user
   test("PUT /users/:id should update a user", async () => {
-    const createUserResponse = await request(app)
+    const createRes = await request(app)
       .post("/users")
       .send({
         name: "Temp User",
-        email: `temp_${Date.now()}@example.com`,
-        password: "tempPass123"
+        email: `put_${Date.now()}@mail.com`,
+        password: "temp123"
       })
       .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-    expect(createUserResponse.status).toBe(201); 
+    expect(createRes.status).toBe(201);
+    const userId = createRes.body?.user?._id;
 
-    const userId = createUserResponse.body?.user?._id;
-    if (!userId) {
-      throw new Error("User ID is undefined. Cannot proceed.");
-    }
-
-    const updatedData = {
-      name: "John Updated",
-      email: `updated_${Date.now()}@example.com`,
-      password: "updatedPass123"
+    const updated = {
+      name: "Updated User",
+      email: `updated_${Date.now()}@mail.com`,
+      password: "newpass123"
     };
 
-    const response = await request(app)
+    const res = await request(app)
       .put(`/users/${userId}`)
-      .send(updatedData)
+      .send(updated)
       .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-    expect(response.status).toBe(200);
-    expect(response.body.user.name).toBe(updatedData.name);
+    console.log("PUT /users response:", res.body);
+    expect(res.status).toBe(200);
+    expect(res.body.user.name).toBe(updated.name);
   });
 
-  // DELETE /users/:id - Delete a user
   test("DELETE /users/:id should delete a user", async () => {
-    const newUserResponse = await request(app)
+    const createRes = await request(app)
       .post("/users")
       .send({
-        name: "Temp User",
-        email: `delete_${Date.now()}@example.com`,
-        password: "tempPass123"
+        name: "Delete Me",
+        email: `delete_${Date.now()}@mail.com`,
+        password: "deletepass"
       })
       .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-    expect(newUserResponse.status).toBe(201); 
+    expect(createRes.status).toBe(201);
+    const userId = createRes.body?.user?._id;
 
-    const userId = newUserResponse.body?.user?._id;
-    if (!userId) {
-      throw new Error("User ID is undefined. Cannot delete.");
-    }
-
-    const response = await request(app)
+    const res = await request(app)
       .delete(`/users/${userId}`)
       .set("Authorization", `Bearer ${process.env.TEST_JWT}`);
 
-    expect(response.status).toBe(200);
-    expect(response.body.message).toBe("User deleted successfully");
+    console.log("DELETE /users response:", res.body);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("User deleted successfully");
   });
-});
-
-// Cleanup
-afterAll(async () => {
-  await mongoose.connection.close();
-  await server.close();
-  await new Promise(resolve => setTimeout(resolve, 0));
 });

@@ -1,8 +1,10 @@
 const express = require("express");
-const router = express.Router();
+const bcrypt = require("bcrypt");
+const mongoose = require("mongoose");
 const User = require("../models/users");
 const authenticateToken = require("../middleware/auth");
-const mongoose = require("mongoose");
+
+const router = express.Router();
 
 /**
  * @swagger
@@ -17,15 +19,19 @@ const mongoose = require("mongoose");
  *   get:
  *     tags: ["Users"]
  *     summary: Get all users
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: A list of users
+ *       404:
+ *         description: No users found
  *       500:
  *         description: Internal server error
  */
-router.get("/", async (req, res) => {
+router.get("/", authenticateToken, async (req, res) => {
   try {
-    const users = await User.find();
+    const users = await User.find().select("-password"); // Exclude password field for security
     if (!users.length) {
       return res.status(404).json({ message: "No users found" });
     }
@@ -41,6 +47,8 @@ router.get("/", async (req, res) => {
  *   get:
  *     tags: ["Users"]
  *     summary: Get a user by ID
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - name: id
  *         in: path
@@ -57,13 +65,13 @@ router.get("/", async (req, res) => {
  *       500:
  *         description: Internal server error
  */
-router.get("/:id", async (req, res) => {
+router.get("/:id", authenticateToken, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid user ID format" });
     }
 
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).select("-password");
     user
       ? res.json(user)
       : res.status(404).json({ message: "User not found" });
@@ -78,8 +86,6 @@ router.get("/:id", async (req, res) => {
  *   post:
  *     tags: ["Users"]
  *     summary: Create a new user
- *     security:
- *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -101,7 +107,7 @@ router.get("/:id", async (req, res) => {
  *       201:
  *         description: User created successfully
  *       400:
- *         description: Missing required fields
+ *         description: Missing required fields or email already in use
  *       500:
  *         description: Internal server error
  */
@@ -113,8 +119,19 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    const newUser = await User.create({ name, email, password });
-    res.status(201).json({ user: newUser });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await User.create({ name, email, password: hashedPassword });
+
+    // Exclude password in response for security
+    const responseUser = newUser.toObject();
+    delete responseUser.password;
+
+    res.status(201).json({ user: responseUser });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
@@ -151,23 +168,30 @@ router.post("/", async (req, res) => {
  *       200:
  *         description: User updated successfully
  *       400:
- *         description: Invalid request
+ *         description: Invalid request or invalid ID format
  *       404:
  *         description: User not found
  *       500:
  *         description: Internal server error
  */
-router.put("/:id", async (req, res) => {
+router.put("/:id", authenticateToken, async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "Invalid user ID format" });
     }
 
+    const updateData = { ...req.body };
+
+    // Hash password if provided
+    if (req.body.password) {
+      updateData.password = await bcrypt.hash(req.body.password, 10);
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
-    );
+    ).select("-password");
 
     updatedUser
       ? res.json({ user: updatedUser })

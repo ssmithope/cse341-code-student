@@ -1,4 +1,4 @@
-require("dotenv").config(); // Load environment variables
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -8,18 +8,16 @@ const MongoStore = require("connect-mongo");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./swagger.json");
 
-// Initialize Express app
 const app = express();
 const PORT = process.env.NODE_ENV === "test" ? 0 : process.env.PORT || 10000;
 
-// Middleware setup
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Session management for OAuth authentication with MongoDB storage
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || "testsecret",
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
@@ -28,74 +26,77 @@ app.use(
     }),
   })
 );
+
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Debugging session data
-app.use((req, res, next) => {
-  console.log("Session Data:", req.session);
-  next();
-});
-
-// Import Passport configuration
 require("./config/passport");
 
-// Swagger API documentation setup
+// Swagger docs
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// Import routes
-const authRoutes = require("./routes/auth");
-const productsRoutes = require("./routes/products");
-const usersRoutes = require("./routes/users");
-const ordersRoutes = require("./routes/orders");
-const contactsRoutes = require("./routes/contacts");
-const swaggerRoutes = require("./routes/swagger");
+// Routes
+app.use("/auth", require("./routes/auth"));
+app.use("/products", require("./routes/products"));
+app.use("/users", require("./routes/users"));
+app.use("/orders", require("./routes/orders"));
+app.use("/contacts", require("./routes/contacts"));
+app.use("/", require("./routes/swagger"));
 
-// Register routes
-app.use("/auth", authRoutes);
-app.use("/products", productsRoutes);
-app.use("/users", usersRoutes);
-app.use("/orders", ordersRoutes);
-app.use("/contacts", contactsRoutes);
-app.use("/", swaggerRoutes);
-
-// Default Route
 app.get("/", (req, res) => res.send("Welcome to my API!"));
 
-// MongoDB Connection
+// MongoDB connection
 mongoose.set("strictQuery", false);
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => {
+
+const connectWithRetry = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    if (process.env.NODE_ENV !== "test") {
+      console.log("Connected to MongoDB");
+    }
+  } catch (err) {
     console.error("MongoDB connection error:", err.message);
-    process.exit(1);
-  });
+    setTimeout(connectWithRetry, 5000);
+  }
+};
+connectWithRetry();
 
-// Graceful shutdown handling for MongoDB
-process.on("SIGINT", async () => {
-  await mongoose.disconnect();
-  console.log("MongoDB disconnected");
-  process.exit(0);
+mongoose.connection.on("disconnected", () => {
+  if (!global.shuttingDown && mongoose.connection.readyState === 0) {
+    console.error("MongoDB disconnected! Retrying...");
+    connectWithRetry();
+  }
 });
 
-// Start the server
-const server = app.listen(PORT, () =>
-  console.log(`Server running on http://localhost:${PORT}`)
-);
+if (process.env.NODE_ENV !== "test") {
+  const server = app.listen(PORT, () =>
+    console.log(`Server running on port ${PORT}`)
+  );
 
-// Handle server shutdown properly
-process.on("SIGTERM", async () => {
-  console.log("Shutting down server...");
-  await mongoose.disconnect();
-  server.close(() => {
-    console.log("Server closed.");
-    process.exit(0);
-  });
-});
+  const shutdownServer = async () => {
+    if (!global.shuttingDown) {
+      global.shuttingDown = true;
+      console.log("Shutting down server...");
+      await mongoose.connection.close();
+      server.close(() => {
+        console.log("Server closed.");
+        process.exit(0);
+      });
+    }
+  };
 
-// Export app for testing
+  process.on("SIGINT", shutdownServer);
+  process.on("SIGTERM", shutdownServer);
+  process.on("exit", shutdownServer);
+  process.on("uncaughtException", (err) =>
+    console.error("Unhandled Exception:", err)
+  );
+  process.on("unhandledRejection", (reason) =>
+    console.error("Unhandled Promise Rejection:", reason)
+  );
+}
+
 module.exports = app;
