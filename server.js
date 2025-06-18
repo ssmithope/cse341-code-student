@@ -9,7 +9,7 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./swagger.json");
 
 const app = express();
-const PORT = process.env.NODE_ENV === "test" ? 0 : process.env.PORT || 10000; // Fix: Dynamic port for testing
+const PORT = process.env.NODE_ENV === "test" ? 0 : process.env.PORT || 10000; 
 
 // Middleware setup
 app.use(cors());

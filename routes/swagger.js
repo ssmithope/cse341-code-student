@@ -12,6 +12,17 @@ const swaggerOptions = {
             description: "API documentation",
         },
         servers: [{ url: "https://cse341-code-student-88ay.onrender.com" }],
+        components: {
+            securitySchemes: {
+                BearerAuth: {
+                    type: "http",
+                    scheme: "bearer",
+                    bearerFormat: "JWT",
+                    description: "Enter JWT token with 'Bearer' prefix"
+                }
+            }
+        },
+        security: [{ BearerAuth: [] }]
     },
     apis: ["./routes/users.js", "./routes/contacts.js", "./routes/orders.js", "./routes/products.js"], 
 };
@@ -19,4 +30,4 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 router.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-module.exports = router;
+module.exports = router; 

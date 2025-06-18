@@ -10,6 +10,9 @@
       "url": "https://cse341-code-student-88ay.onrender.com"
     }
   ],
+   "security": [
+    { "BearerAuth": [] }
+  ],
   "tags": [
     { "name": "Users", "description": "User management operations" },
     { "name": "Contacts", "description": "Contact information management" },
@@ -19,10 +22,10 @@
   "components": {
     "securitySchemes": {
       "BearerAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "Authorization",
-        "description": "Enter JWT with 'Bearer ' prefix"
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter JWT token with 'Bearer' prefix"
       }
     },
     "schemas": {
